@@ -1,0 +1,16 @@
+env:
+  es2020: true
+
+ignorePatterns:
+  - dist
+  - proto
+
+extends:
+  - plugin:@lichtblick/base
+
+overrides:
+  - files: ["*.ts", "*.tsx"]
+    extends:
+      - plugin:@lichtblick/typescript
+    parserOptions:
+      project: ./tsconfig.json

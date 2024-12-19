@@ -25,12 +25,15 @@
   },
   "engines": {
     "node": ">=16.0.0",
-    "npm": ">=7.0.0"
+    "npm": ">=7.0.0",
+    "test": "jest",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.23.3",
     "@commitlint/cli": "^19.6.0",
     "@commitlint/config-conventional": "^19.6.0",
+    "@foxglove/eslint-plugin": "^2.0.0",
     "@foxglove/schemas": "^1.6.2",
     "@lichtblick/asam-osi-types": "^3.7.0",
     "@lichtblick/eslint-plugin": "^1.0.1",
