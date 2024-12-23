@@ -12,8 +12,8 @@ plugins:
   - jest
 
 extends:
-  - plugin:@foxglove/base
-  - plugin:@foxglove/react
+  - plugin:@lichtblick/base
+  - plugin:@lichtblick/react
 
 rules:
   react-hooks/exhaustive-deps:
@@ -22,6 +22,6 @@ rules:
 overrides:
   - files: ["*.ts", "*.tsx"]
     extends:
-      - plugin:@foxglove/typescript
+      - plugin:@lichtblick/typescript
     parserOptions:
       project: ./tsconfig.json

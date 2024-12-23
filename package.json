@@ -14,18 +14,20 @@
     "visualization"
   ],
   "scripts": {
-    "build": "foxglove-extension build",
-    "foxglove:prepublish": "foxglove-extension build --mode production",
+    "build": "lichtblick-extension build",
+    "lichtblick:prepublish": "lichtblick-extension build --mode production",
     "lint:ci": "eslint --report-unused-disable-directives .",
     "lint": "eslint --report-unused-disable-directives --fix .",
-    "local-install": "foxglove-extension install",
-    "package": "foxglove-extension package",
+    "local-install": "lichtblick-extension install",
+    "package": "lichtblick-extension package",
     "test": "jest",
     "prepare": "husky"
   },
   "engines": {
     "node": ">=16.0.0",
-    "npm": ">=7.0.0"
+    "npm": ">=7.0.0",
+    "test": "jest",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.23.3",
@@ -33,7 +35,7 @@
     "@commitlint/config-conventional": "^19.6.0",
     "@foxglove/schemas": "^1.6.2",
     "@lichtblick/asam-osi-types": "^3.7.0",
-    "@lichtblick/eslint-plugin": "^1.0.1",
+    "@lichtblick/eslint-plugin": "^1.0.2",
     "@lichtblick/suite": "^1.5.0",
     "@types/jest": "^29.5.12",
     "@types/react": "18.2.55",
@@ -42,7 +44,7 @@
     "@typescript-eslint/parser": "6.21.0",
     "commitizen": "^4.3.1",
     "conventional-changelog-cli": "^5.0.0",
-    "create-foxglove-extension": "0.8.6",
+    "create-lichtblick-extension": "^1.0.0",
     "cz-conventional-changelog": "^3.3.0",
     "esbuild": "^0.20.1",
     "esbuild-jest": "^0.5.0",

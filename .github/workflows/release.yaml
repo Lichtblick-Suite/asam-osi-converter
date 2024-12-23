@@ -21,7 +21,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
 
       - name: Install dependencies
         run: npm install
@@ -118,7 +118,7 @@ jobs:
           asset_content_type: text/markdown
 
       - name: Upload CHANGELOG as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: changelog
           path: ./CHANGELOG.md
@@ -133,16 +133,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
-      - name: Install dependencies
-        run: npm install
-
       - name: Download changelog artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: changelog
           path: ./
