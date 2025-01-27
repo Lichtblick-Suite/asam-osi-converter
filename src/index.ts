@@ -282,15 +282,15 @@ export function determineTheNeedToRerender(lastRenderTime: Time, currentRenderTi
   return !(diff >= 0 && diff <= 10000000);
 }
 
-function buildSceneEntities(osiGroundTruth: DeepRequired<GroundTruth>): PartialSceneEntity[] {
-  let sceneEntities: PartialSceneEntity[] = [];
-  const time: Time = osiTimestampToTime(osiGroundTruth.timestamp);
-  const needtoRerender =
-    staticObjectsRenderCache.lastRenderTime != undefined &&
-    determineTheNeedToRerender(staticObjectsRenderCache.lastRenderTime, time);
+let cachedLaneBoundarySceneEntities: PartialSceneEntity[] = [];
+let lastLaneBoundaryUpdateTime: number | undefined;
 
-  // Moving objects
-  const movingObjectSceneEntities = osiGroundTruth.moving_object.map((obj) => {
+// Moving objects
+function buildMovingObjectEntities(
+  osiGroundTruth: DeepRequired<GroundTruth>,
+  time: Time,
+): PartialSceneEntity[] {
+  return osiGroundTruth.moving_object.map((obj) => {
     let entity;
     if (obj.id.value === osiGroundTruth.host_vehicle_id?.value) {
       const metadata = buildVehicleMetadata(obj.vehicle_classification);
@@ -307,18 +307,26 @@ function buildSceneEntities(osiGroundTruth: DeepRequired<GroundTruth>): PartialS
     }
     return entity;
   });
+}
 
-  sceneEntities = sceneEntities.concat(movingObjectSceneEntities);
-
-  // Stationary objects
-  const stationaryObjectSceneEntities = osiGroundTruth.stationary_object.map((obj) => {
+// Stationary objects
+function buildStationaryObjectEntities(
+  osiGroundTruth: DeepRequired<GroundTruth>,
+  time: Time,
+): PartialSceneEntity[] {
+  return osiGroundTruth.stationary_object.map((obj) => {
     const objectColor = STATIONARY_OBJECT_COLOR[obj.classification.color].code;
     const metadata = buildStationaryMetadata(obj);
     return buildObjectEntity(obj, objectColor, "stationary_object_", ROOT_FRAME, time, metadata);
   });
-  sceneEntities = sceneEntities.concat(stationaryObjectSceneEntities);
+}
 
-  // Traffic Sign objects
+// Traffic Sign objects
+function buildTrafficSignEntities(
+  osiGroundTruth: DeepRequired<GroundTruth>,
+  time: Time,
+  needtoRerender: boolean,
+): PartialSceneEntity[] {
   let filteredTrafficSigns: DeepRequired<TrafficSign>[];
   if (needtoRerender) {
     staticObjectsRenderCache.lastRenderedObjects.clear();
@@ -333,20 +341,49 @@ function buildSceneEntities(osiGroundTruth: DeepRequired<GroundTruth>): PartialS
     return buildTrafficSignEntity(obj, "traffic_sign_", ROOT_FRAME, time);
   });
   staticObjectsRenderCache.lastRenderTime = time;
-  sceneEntities = sceneEntities.concat(trafficsignObjectSceneEntities);
+  return trafficsignObjectSceneEntities;
+}
 
-  // Traffic Light objects
-  const trafficlightObjectSceneEntities = osiGroundTruth.traffic_light.map((obj) => {
+// Traffic Light objects
+function buildTrafficLightEntities(
+  osiGroundTruth: DeepRequired<GroundTruth>,
+  time: Time,
+): PartialSceneEntity[] {
+  return osiGroundTruth.traffic_light.map((obj) => {
     const metadata = buildTrafficLightMetadata(obj);
     return buildTrafficLightEntity(obj, "traffic_light_", ROOT_FRAME, time, metadata);
   });
-  sceneEntities = sceneEntities.concat(trafficlightObjectSceneEntities);
+}
 
-  // Lane boundaries
-  const laneBoundarySceneEntities = osiGroundTruth.lane_boundary.map((lane_boundary) => {
-    return buildLaneBoundaryEntity(lane_boundary, ROOT_FRAME, time);
-  });
-  sceneEntities = sceneEntities.concat(laneBoundarySceneEntities);
+// Lane boundaries
+function buildLaneBoundaryEntities(
+  osiGroundTruth: DeepRequired<GroundTruth>,
+  time: Time,
+): PartialSceneEntity[] {
+  if (
+    !lastLaneBoundaryUpdateTime ||
+    lastLaneBoundaryUpdateTime !== osiGroundTruth.timestamp.seconds
+  ) {
+    cachedLaneBoundarySceneEntities = osiGroundTruth.lane_boundary.map((lane_boundary) => {
+      return buildLaneBoundaryEntity(lane_boundary, ROOT_FRAME, time);
+    });
+    lastLaneBoundaryUpdateTime = osiGroundTruth.timestamp.seconds;
+  }
+  return cachedLaneBoundarySceneEntities;
+}
+
+function buildSceneEntities(osiGroundTruth: DeepRequired<GroundTruth>): PartialSceneEntity[] {
+  const sceneEntities: PartialSceneEntity[] = [];
+  const time: Time = osiTimestampToTime(osiGroundTruth.timestamp);
+  const needtoRerender =
+    staticObjectsRenderCache.lastRenderTime != undefined &&
+    determineTheNeedToRerender(staticObjectsRenderCache.lastRenderTime, time);
+
+  sceneEntities.push(...buildMovingObjectEntities(osiGroundTruth, time));
+  sceneEntities.push(...buildStationaryObjectEntities(osiGroundTruth, time));
+  sceneEntities.push(...buildTrafficSignEntities(osiGroundTruth, time, needtoRerender));
+  sceneEntities.push(...buildTrafficLightEntities(osiGroundTruth, time));
+  sceneEntities.push(...buildLaneBoundaryEntities(osiGroundTruth, time));
 
   return sceneEntities;
 }
@@ -427,23 +464,42 @@ function buildGroundTruthSceneEntities(
 export function activate(extensionContext: ExtensionContext): void {
   preloadDynamicTextures();
 
+  const sceneUpdateCache = new WeakMap<GroundTruth, DeepPartial<SceneUpdate>>();
+  let renderQueue: PartialSceneEntity[] = [];
+  const RENDER_BATCH_SIZE = 70;
+
   const convertGrountTruthToSceneUpdate = (
     osiGroundTruth: GroundTruth,
   ): DeepPartial<SceneUpdate> => {
+    if (sceneUpdateCache.has(osiGroundTruth)) {
+      return sceneUpdateCache.get(osiGroundTruth)!;
+    }
+
     let sceneEntities: PartialSceneEntity[] = [];
 
     try {
-      sceneEntities = buildSceneEntities(osiGroundTruth as DeepRequired<GroundTruth>);
+      renderQueue.push(...buildSceneEntities(osiGroundTruth as DeepRequired<GroundTruth>));
     } catch (error) {
       console.error(
         "OsiGroundTruthVisualizer: Error during message conversion:\n%s\nSkipping message! (Input message not compatible?)",
         error,
       );
     }
-    return {
+    for (let i = 0; i < RENDER_BATCH_SIZE && renderQueue.length > 0; i++) {
+      sceneEntities.push(renderQueue.shift()!);
+    }
+
+    const sceneUpdate: DeepPartial<SceneUpdate> = {
       deletions: [],
       entities: sceneEntities,
     };
+
+    sceneUpdateCache.set(osiGroundTruth, sceneUpdate);
+
+    sceneEntities = null!;
+    osiGroundTruth = null!;
+
+    return sceneUpdate;
   };
 
   const convertSensorDataToSceneUpdate = (osiSensorData: SensorData): DeepPartial<SceneUpdate> => {
@@ -457,6 +513,9 @@ export function activate(extensionContext: ExtensionContext): void {
         error,
       );
     }
+
+    osiSensorData = null!;
+
     return {
       deletions: [],
       entities: sceneEntities,
@@ -475,6 +534,9 @@ export function activate(extensionContext: ExtensionContext): void {
         error,
       );
     }
+
+    message = null!;
+
     return transforms;
   };
 
