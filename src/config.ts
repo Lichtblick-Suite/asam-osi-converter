@@ -1,5 +1,4 @@
 import { Color } from "@foxglove/schemas";
-import { ColorCode, ColorCodeName } from "@utils/helper";
 import {
   LaneBoundary_Classification_Type,
   MovingObject_Type,
@@ -9,7 +8,7 @@ import {
   StationaryObject_Classification_Type,
   TrafficLight_Classification_Color,
 } from "@lichtblick/asam-osi-types";
-
+import { ColorCode, ColorCodeName } from "@utils/helper";
 //// COLOR CONFIG ////
 
 export const HOST_OBJECT_COLOR: Color = ColorCode("b", 0.5);

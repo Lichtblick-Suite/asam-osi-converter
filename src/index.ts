@@ -10,15 +10,6 @@ import {
   type Vector3,
 } from "@foxglove/schemas";
 import { Time } from "@foxglove/schemas/schemas/typescript/Time";
-import { ExtensionContext } from "@lichtblick/suite";
-import { eulerToQuaternion, pointRotationByQuaternion } from "@utils/geometry";
-import { ColorCode } from "@utils/helper";
-import {
-  pointListToLinePrimitive,
-  pointListToDashedLinePrimitive,
-  objectToCubePrimitive,
-} from "@utils/marker";
-import { PartialSceneEntity } from "@utils/scene";
 import {
   DetectedLaneBoundary,
   GroundTruth,
@@ -39,6 +30,15 @@ import {
   MovingObject_VehicleClassification_LightState_BrakeLightState,
   MovingObject_VehicleClassification_LightState_IndicatorState,
 } from "@lichtblick/asam-osi-types";
+import { ExtensionContext } from "@lichtblick/suite";
+import { eulerToQuaternion, pointRotationByQuaternion } from "@utils/geometry";
+import { ColorCode } from "@utils/helper";
+import {
+  pointListToLinePrimitive,
+  pointListToDashedLinePrimitive,
+  objectToCubePrimitive,
+} from "@utils/marker";
+import { PartialSceneEntity } from "@utils/scene";
 import { DeepPartial, DeepRequired } from "ts-essentials";
 
 import {
