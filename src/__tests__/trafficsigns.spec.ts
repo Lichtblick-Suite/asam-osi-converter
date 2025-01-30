@@ -1,6 +1,7 @@
-import { DeepRequired } from "ts-essentials";
-import { buildTrafficSignModel, preloadDynamicTextures } from "../trafficsigns";
 import { TrafficSign_MainSign } from "@lichtblick/asam-osi-types";
+import { DeepRequired } from "ts-essentials";
+
+import { buildTrafficSignModel, preloadDynamicTextures } from "../trafficsigns";
 
 const mockImage =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";

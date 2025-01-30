@@ -1,4 +1,3 @@
-import { ExtensionContext } from "@lichtblick/suite";
 import {
   GroundTruth,
   LaneBoundary,
@@ -13,6 +12,7 @@ import {
   MovingObject_VehicleClassification_Type,
   StationaryObject,
 } from "@lichtblick/asam-osi-types";
+import { ExtensionContext } from "@lichtblick/suite";
 import { DeepRequired } from "ts-essentials";
 
 import {
