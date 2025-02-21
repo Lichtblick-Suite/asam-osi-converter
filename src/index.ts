@@ -444,7 +444,38 @@ function buildGroundTruthSceneEntities(
 export function activate(extensionContext: ExtensionContext): void {
   preloadDynamicTextures();
 
-  const convertGrountTruthToSceneUpdate = (
+  let startupTime = 0;
+  let avgTimeInConverterFunction = 0;
+  let i = 0;
+
+  const sceneUpdateMemoizationMap = new WeakMap<GroundTruth, PartialSceneEntity[]>();
+  const convertGroundTruthToSceneUpdateCache = (
+    osiGroundTruth: GroundTruth,
+  ): DeepPartial<SceneUpdate> => {
+    let sceneEntities: PartialSceneEntity[] = [];
+    if (sceneUpdateMemoizationMap.has(osiGroundTruth)) {
+      // console.log("Read from cache...");
+      sceneEntities = sceneUpdateMemoizationMap.get(osiGroundTruth)!;
+    } else {
+      try {
+        sceneEntities = buildSceneEntities(osiGroundTruth as DeepRequired<GroundTruth>);
+        // console.log("Write to cache...");
+        sceneUpdateMemoizationMap.set(osiGroundTruth, sceneEntities);
+      } catch (error) {
+        console.error(
+          "OsiGroundTruthVisualizer: Error during message conversion:\n%s\nSkipping message! (Input message not compatible?)",
+          error,
+        );
+      }
+    }
+    // console.log("Return...");
+    return {
+      deletions: [],
+      entities: sceneEntities,
+    };
+  };
+
+  /* const convertGroundTruthToSceneUpdateNoCache = (
     osiGroundTruth: GroundTruth,
   ): DeepPartial<SceneUpdate> => {
     let sceneEntities: PartialSceneEntity[] = [];
@@ -461,7 +492,7 @@ export function activate(extensionContext: ExtensionContext): void {
       deletions: [],
       entities: sceneEntities,
     };
-  };
+  }; */
 
   const convertSensorDataToSceneUpdate = (osiSensorData: SensorData): DeepPartial<SceneUpdate> => {
     let sceneEntities: PartialSceneEntity[] = [];
@@ -534,14 +565,25 @@ export function activate(extensionContext: ExtensionContext): void {
   extensionContext.registerMessageConverter({
     fromSchemaName: "osi3.GroundTruth",
     toSchemaName: "foxglove.SceneUpdate",
-    converter: convertGrountTruthToSceneUpdate,
+    converter: convertGroundTruthToSceneUpdateCache,
   });
 
   extensionContext.registerMessageConverter({
     fromSchemaName: "osi3.SensorView",
     toSchemaName: "foxglove.SceneUpdate",
-    converter: (osiSensorView: SensorView) =>
-      convertGrountTruthToSceneUpdate(osiSensorView.global_ground_truth!),
+    converter: (osiSensorView: SensorView) => {
+      const start = performance.now();
+
+      const result = convertGroundTruthToSceneUpdateCache(osiSensorView.global_ground_truth!);
+
+      const end = performance.now();
+      const diff = end - start;
+      avgTimeInConverterFunction = (avgTimeInConverterFunction * i + diff) / (i + 1);
+      i++;
+      startupTime += diff;
+      console.log(`${startupTime} milliseconds (+${diff}, avg: ${avgTimeInConverterFunction})`);
+      return result;
+    },
   });
 
   extensionContext.registerMessageConverter({
